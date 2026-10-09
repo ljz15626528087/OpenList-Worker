@@ -49,9 +49,11 @@ pages/dist/
 dist-server/
 *.tsbuildinfo
 
-# EdgeOne Makers Node 云函数产物：由平台构建命令（pnpm run build -> scripts/build-edge.mjs）
-# 在部署时生成，不入库；构建校验见 .github/workflows/build-verify.yml
-cloud-functions/
+# EdgeOne Makers Node 云函数：
+#   cloud-functions/[[default]].js 是薄包装入口（入库），须被 EdgeOne 在构建前发现以注册 Node 云函数。
+#   实际 bundle 由构建命令生成到 dist-server/edgeone-entry.js（dist-server/ 已在上方忽略）。
+#   因此这里不再忽略整个 cloud-functions/ 目录，只忽略可能出现的临时产物。
+# cloud-functions/ ← 已移除，入口文件需入库
 
 # source maps (optional, can be removed)
 *.map

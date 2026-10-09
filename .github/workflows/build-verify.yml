@@ -1,8 +1,9 @@
 name: Build Verify
 
-# dist/、dist-server/、cloud-functions/[[default]].js 全部是构建产物，一律不入库：
+# dist/、dist-server/ 全部是构建产物，一律不入库：
 #   - EdgeOne Makers：edgeone.json 的 buildCommand（pnpm run build）在部署时生成
-#     dist/ 与 cloud-functions/[[default]].js
+#     dist/ 与 dist-server/edgeone-entry.js；cloud-functions/[[default]].js 是
+#     薄包装入口，入库，EdgeOne 构建前可发现并注册 Node 云函数。
 #   - Cloudflare Workers：wrangler deploy 从 src/backend/worker.ts 打包，并用 dist/ 作静态资源
 #   - 自托管 Node：node dist-server/api/[...route].js 由 pnpm run build 产出
 #
@@ -20,6 +21,7 @@ on:
       - "src/**"
       - "api/**"
       - "functions/**"
+      - "cloud-functions/**"
       - "scripts/**"
       - "middleware.js"
       - "edgeone.json"
@@ -32,6 +34,7 @@ on:
       - "src/**"
       - "api/**"
       - "functions/**"
+      - "cloud-functions/**"
       - "scripts/**"
       - "middleware.js"
       - "edgeone.json"
@@ -79,13 +82,19 @@ jobs:
           set -e
           test -f dist/index.html
           test -f "dist-server/api/[...route].js"
+          test -f "dist-server/edgeone-entry.js"
           test -f "cloud-functions/[[default]].js"
-          echo "OK: dist/index.html、dist-server/api/[...route].js、cloud-functions/[[default]].js 均已生成"
+          echo "OK: dist/index.html、dist-server/api/[...route].js、dist-server/edgeone-entry.js、cloud-functions/[[default]].js 均已生成/存在"
 
-      - name: Assert the EdgeOne artifact is not tracked
+      - name: Assert the EdgeOne bundle is not tracked (only the thin wrapper is)
         run: |
-          if git ls-files --error-unmatch "cloud-functions/[[default]].js" > /dev/null 2>&1; then
-            echo "::error::cloud-functions/[[default]].js 是构建产物，不应提交进仓库（见 .gitignore）。"
+          if git ls-files --error-unmatch "dist-server/edgeone-entry.js" > /dev/null 2>&1; then
+            echo "::error::dist-server/edgeone-entry.js 是构建产物，不应提交进仓库（见 .gitignore）。"
             exit 1
           fi
-          echo "OK: cloud-functions/[[default]].js 未被 git 跟踪"
+          if ! git ls-files --error-unmatch "cloud-functions/[[default]].js" > /dev/null 2>&1; then
+            echo "::error::cloud-functions/[[default]].js 是薄包装入口，必须提交进仓库。"
+            exit 1
+          fi
+          echo "OK: dist-server/edgeone-entry.js 未被 git 跟踪；cloud-functions/[[default]].js 已入库"
+

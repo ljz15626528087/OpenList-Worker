@@ -169,15 +169,16 @@ async function build() {
     plugins: [emptyNodeDriverPlugin],
   })
 
-  // EdgeOne Makers 的 Node 云函数入口。产物按平台约定落在项目根
-  // cloud-functions/[[default]].js，但它**不入库**：EdgeOne 的构建命令
-  // （edgeone.json -> pnpm run build）会在部署时执行本脚本重新生成。
+  // EdgeOne Makers 的 Node 云函数实际 bundle。产物落在 dist-server/edgeone-entry.js，
+  // 由入库的薄包装入口 cloud-functions/[[default]].js import 并重新导出。
+  // 这样 EdgeOne 构建前能通过入口文件发现并注册 Node 云函数，
+  // 同时保持真正的大体积 bundle 不入库（dist-server/ 在 .gitignore 中）。
   await esbuild.build({
     entryPoints: ["api/_makers.ts"],
     bundle: true,
     platform: "node",
     target: "node22",
-    outfile: "cloud-functions/[[default]].js",
+    outfile: "dist-server/edgeone-entry.js",
     minify: true,
     format: "esm",
     external: ["ssh2", "cpu-features", "iconv-lite", "mysql2"],
@@ -209,7 +210,7 @@ async function build() {
   }
 
   console.log(
-    "✓ Edge build complete -> dist-server/api/[...route].js & cloud-functions/[[default]].js",
+    "✓ Edge build complete -> dist-server/api/[...route].js & dist-server/edgeone-entry.js",
   )
 }
 
